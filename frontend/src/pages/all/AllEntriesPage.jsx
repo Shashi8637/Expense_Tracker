@@ -1,4 +1,6 @@
 import React, { useEffect, useState } from "react";
+import { handleDelete } from "../utils/handleDelete.js";
+import { handleSort } from "../utils/handleSort.js";
 
 const AllEntriesPage = () => {
   const [allEntries, setAllEntries] = useState([]);
@@ -60,13 +62,6 @@ const AllEntriesPage = () => {
   const totalBalance = totalIncome - totalExpense;
 
   // Handle sorting
-  const handleSort = (key) => {
-    let direction = "ascending";
-    if (sortConfig.key === key && sortConfig.direction === "ascending") {
-      direction = "descending";
-    }
-    setSortConfig({ key, direction });
-  };
 
   // Sort entries based on sortConfig
   const sortedEntries = [...allEntries].sort((a, b) => {
@@ -114,32 +109,12 @@ const AllEntriesPage = () => {
     }
   };
 
-  // Handle delete entry
-  const handleDelete = async (id) => {
-    const confirmDelete = window.confirm(
-      "Are you sure you want to delete this entry?"
+  const handleDeleteEntries = (id) => {
+    handleDelete(
+      id,
+      setAllEntries,
+      "http://localhost:5500/api/v1/deleteentries"
     );
-    if (!confirmDelete) return;
-
-    try {
-      const response = await fetch(
-        `http://localhost:5500/api/v1/deleteentries/${id}`,
-        {
-          method: "DELETE",
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error("Failed to delete the entry");
-      }
-
-      setAllEntries((prevEntries) =>
-        prevEntries.filter((entry) => entry._id !== id)
-      );
-    } catch (error) {
-      console.error("Error deleting entry:", error);
-      alert("Failed to delete the entry. Please try again.");
-    }
   };
 
   // Function to add an entry
@@ -218,22 +193,44 @@ const AllEntriesPage = () => {
       </button>
 
       {/* Display Total Income, Total Expense, and Total Balance */}
-      <div className="mb-4">
-        <h2 className="text-xl font-semibold">
-          Total Income: ₹{totalIncome.toLocaleString()}
-        </h2>
-        <h2 className="text-xl font-semibold">
-          Total Expense: ₹{totalExpense.toLocaleString()}
-        </h2>
-        <h2 className="text-xl font-semibold">
-          Total Balance: ₹{totalBalance.toLocaleString()}
-        </h2>
+      <div className="mb-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <div className="p-4 bg-white shadow-md rounded-lg border border-gray-200 flex flex-col items-center">
+          <h2 className="text-2xl font-semibold text-green-600 flex items-center">
+            💰
+          </h2>
+          <p className="text-xl font-semibold mt-2">Total Income</p>
+          <p className="text-lg font-bold mt-1">
+            ₹{totalIncome.toLocaleString()}
+          </p>
+        </div>
+
+        <div className="p-4 bg-white shadow-md rounded-lg border border-gray-200 flex flex-col items-center">
+          <h2 className="text-2xl font-semibold text-red-500 flex items-center">
+            💸
+          </h2>
+          <p className="text-xl font-semibold mt-2">Total Expense</p>
+          <p className="text-lg font-bold mt-1">
+            ₹{totalExpense.toLocaleString()}
+          </p>
+        </div>
+
+        <div className="p-4 bg-white shadow-md rounded-lg border border-gray-200 flex flex-col items-center">
+          <h2 className="text-2xl font-semibold text-blue-600 flex items-center">
+            🔹
+          </h2>
+          <p className="text-xl font-semibold mt-2">Total Balance</p>
+          <p className="text-lg font-bold mt-1">
+            ₹{totalBalance.toLocaleString()}
+          </p>
+        </div>
       </div>
 
       <div className="flex justify-end mb-4">
         <select
           value={sortConfig.key}
-          onChange={(e) => handleSort(e.target.value)}
+          onChange={(e) =>
+            handleSort(e.target.value, sortConfig, setSortConfig)
+          }
           className="border border-gray-300 rounded p-2"
         >
           <option value="amount">Sort by Amount</option>
@@ -270,7 +267,7 @@ const AllEntriesPage = () => {
                 <td className="py-2 px-4 border-b">{entry.subcategory}</td>
                 <td className="py-2 px-4 border-b">{entry.paymentMethod}</td>
                 <td className="py-2 px-4 border-b">
-                  {new Date(entry.date).toLocaleDateString('en-GB')}
+                  {new Date(entry.date).toLocaleDateString("en-GB")}
                 </td>
                 <td className="py-2 px-4 border-b">
                   <button
@@ -280,7 +277,7 @@ const AllEntriesPage = () => {
                     Edit
                   </button>
                   <button
-                    onClick={() => handleDelete(entry._id)}
+                    onClick={() => handleDeleteEntries(entry._id)}
                     className="bg-red-500 text-white px-2 py-1 rounded"
                   >
                     Delete
@@ -416,6 +413,10 @@ const AllEntriesPage = () => {
                 </button>
                 <button
                   type="submit"
+                  onClick={() => {
+                    // Refresh the page
+                    window.location.reload();
+                  }}
                   className="bg-green-500 text-white px-4 py-2 rounded"
                 >
                   Add Entry
